@@ -12,6 +12,7 @@
   "license": "MIT",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.15",
-    "lite-server": "2.4.0"
+    "lite-server": "2.4.0",
+    "truffle-hdwallet-provider": "^1.0.17"
   }
 }
