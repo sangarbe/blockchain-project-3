@@ -8,7 +8,7 @@ import "../coffeeaccesscontrol/RetailerRole.sol";
 
 contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole, Ownable {
 
-    uint  sku;
+    uint public  sku;
 
     mapping(uint => Item) items;
 
@@ -51,18 +51,22 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole,
     event Received(uint upc);
     event Purchased(uint upc);
 
+    function _isState(uint _upc, State _state) view internal returns (bool) {
+        return items[_upc].itemState == _state;
+    }
+
     modifier verifyCaller (address _address) {
-        require(msg.sender == _address);
+        require(msg.sender == _address, "Error: address is not the caller");
         _;
     }
 
     modifier itemOwner (uint _upc) {
-        require(items[_upc].ownerID == msg.sender);
+        require(items[_upc].ownerID == msg.sender, "Error: caller is not item's owner");
         _;
     }
 
     modifier paidEnough(uint _upc) {
-        require(msg.value >= items[_upc].productPrice);
+        require(msg.value >= items[_upc].productPrice, "Error: not paid enough");
         _;
     }
 
@@ -74,52 +78,48 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole,
     }
 
     modifier growing(uint _upc) {
-        require(_isState(_upc, State.Growing));
+        require(_isState(_upc, State.Growing), "Error: item already harvested");
         _;
     }
 
     modifier harvested(uint _upc) {
-        require(_isState(_upc, State.Harvested));
+        require(_isState(_upc, State.Harvested), "Error: item is not harvested");
         _;
     }
 
     modifier processed(uint _upc) {
-        require(_isState(_upc, State.Processed));
+        require(_isState(_upc, State.Processed), "Error: item is not processed");
         _;
     }
 
     modifier packed(uint _upc) {
-        require(_isState(_upc, State.Packed));
+        require(_isState(_upc, State.Packed), "Error: item is not packed");
         _;
     }
 
     modifier forSale(uint _upc) {
-        require(_isState(_upc, State.ForSale));
+        require(_isState(_upc, State.ForSale), "Error: item is not for sale");
         _;
     }
 
     modifier sold(uint _upc) {
-        require(_isState(_upc, State.Sold));
+        require(_isState(_upc, State.Sold), "Error: item is not sold");
         _;
     }
 
     modifier shipped(uint _upc) {
-        require(_isState(_upc, State.Shipped));
+        require(_isState(_upc, State.Shipped), "Error: item is not shipped");
         _;
     }
 
     modifier received(uint _upc) {
-        require(_isState(_upc, State.Received));
+        require(_isState(_upc, State.Received), "Error: item is not received");
         _;
     }
 
     modifier purchased(uint _upc) {
-        require(_isState(_upc, State.Purchased));
+        require(_isState(_upc, State.Purchased), "Error: item is not purchased");
         _;
-    }
-
-    constructor() public {
-        sku = 1;
     }
 
     function harvestItem(
@@ -156,45 +156,45 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole,
 
     function processItem(uint _upc) public onlyFarmer itemOwner(_upc) harvested(_upc)
     {
-        items[_upc].itemState == State.Processed;
+        items[_upc].itemState = State.Processed;
         emit Processed(_upc);
     }
 
     function packItem(uint _upc) public onlyFarmer itemOwner(_upc) processed(_upc)
     {
-        items[_upc].itemState == State.Packed;
+        items[_upc].itemState = State.Packed;
         emit Packed(_upc);
     }
 
     function sellItem(uint _upc, uint _price) public onlyFarmer itemOwner(_upc) packed(_upc)
     {
-        items[_upc].itemState == State.ForSale;
-        items[_upc].productPrice == _price;
+        items[_upc].itemState = State.ForSale;
+        items[_upc].productPrice = _price;
 
         emit ForSale(_upc);
     }
 
-    function buyItem(uint _upc) public payable onlyDistributor forSale(_upc) paidEnough(_upc)
+    function buyItem(uint _upc) public payable onlyDistributor paidEnough(_upc) forSale(_upc)
     {
-        items[_upc].itemState == State.Sold;
-        items[_upc].distributorID == msg.sender;
-        items[_upc].ownerID == msg.sender;
+        items[_upc].itemState = State.Sold;
+        items[_upc].distributorID = msg.sender;
+        items[_upc].ownerID = msg.sender;
 
         emit Sold(_upc);
     }
 
     function shipItem(uint _upc) public onlyDistributor itemOwner(_upc) sold(_upc)
     {
-        items[_upc].itemState == State.Shipped;
+        items[_upc].itemState = State.Shipped;
 
         emit Shipped(_upc);
     }
 
     function receiveItem(uint _upc) public onlyRetailer shipped(_upc)
     {
-        items[_upc].itemState == State.Received;
-        items[_upc].retailerID == msg.sender;
-        items[_upc].ownerID == msg.sender;
+        items[_upc].itemState = State.Received;
+        items[_upc].retailerID = msg.sender;
+        items[_upc].ownerID = msg.sender;
 
         emit Received(_upc);
 
@@ -202,9 +202,9 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole,
 
     function purchaseItem(uint _upc) public onlyConsumer received(_upc)
     {
-        items[_upc].itemState == State.Purchased;
-        items[_upc].consumerID == msg.sender;
-        items[_upc].ownerID == msg.sender;
+        items[_upc].itemState = State.Purchased;
+        items[_upc].consumerID = msg.sender;
+        items[_upc].ownerID = msg.sender;
 
         emit Purchased(_upc);
     }
@@ -261,7 +261,4 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole,
         );
     }
 
-    function _isState(uint _upc, State _state) internal returns (bool) {
-        return items[_upc].itemState == _state;
-    }
 }
