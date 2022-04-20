@@ -73,3 +73,7 @@ button:disabled {
 .horizontal-rule {
   background-color:#BDBDBD;
 }
+
+.error {
+    color: red;
+}

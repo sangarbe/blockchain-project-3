@@ -17,6 +17,9 @@
 </div>
 
 <div id="ftc-harvest">
+    <div id="ftc-item">
+    </div>
+
     <h2>Product Overview</h2>
     <div class="form-group">
         UPC
@@ -40,16 +43,16 @@
         <input type="text" id="originFarmerID" name="originFarmerID" size="50" disabled><br>
         Farm Name
         <br>
-        <input type="text" id="originFarmName" name="originFarmName" value="John Doe"><br>
+        <input type="text" id="originFarmName" name="originFarmName" placeholder="John Doe"><br>
         Farm Information
         <br>
-        <input type="text" id="originFarmInformation" name="originFarmInformation" value="Yarra Valley"><br>
+        <input type="text" id="originFarmInformation" name="originFarmInformation" placeholder="Yarra Valley"><br>
         Farm Latitude
         <br>
-        <input type="text" id="originFarmLatitude" name="originFarmLatitude" value="-38.239770"><br>
+        <input type="text" id="originFarmLatitude" name="originFarmLatitude" placeholder="-38.239770"><br>
         Farm Longitude
         <br>
-        <input type="text" id="originFarmLongitude" name="originFarmLongitude" value="144.341490"><br>
+        <input type="text" id="originFarmLongitude" name="originFarmLongitude" placeholder="144.341490"><br>
         <br>
         <button class="btn-harvest" type="button" data-id="1">Harvest</button>
         <button class="btn-process" type="button" data-id="2">Process</button>
@@ -61,10 +64,10 @@
     <div class="form-group">
         Product Notes
         <br>
-        <input type="text" id="productNotes" name="productNotes" value="Best beans for Espresso" size="60"><br>
+        <input type="text" id="productNotes" name="productNotes" placeholder="Best beans for Espresso" size="60"><br>
         Product Price
         <br>
-        <input type="number" required min="0" step="0.01" id="productPrice" name="productPrice" value=1>ETH<br>
+        <input type="number" required min="1" id="productPrice" name="productPrice" value=1>ETH<br>
         Distributor ID
         <br>
         <input type="text" id="distributorID" name="distributorID" size="50" disabled>
@@ -87,9 +90,6 @@
 
 <h2>Transaction History<span id="ftc-history"></span></h2>
 <div>
-    <div id="ftc-item">
-        <!-- Result will appear here from app.js -->
-    </div>
     <hr>
     <ul id="ftc-events">
         <!-- Events will appear here from app.js -->

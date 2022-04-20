@@ -1,3 +1,16 @@
+const Handlers = [
+  "",
+  "Harvest",
+  "Process",
+  "Pack",
+  "Sell",
+  "Buy",
+  "Ship",
+  "Receive",
+  "Purchase",
+  "Fetch"
+];
+
 const App = {
   web3: null,
   web3Provider: null,
@@ -9,9 +22,21 @@ const App = {
       await App.initWeb3();
       await App.getCurrentAccountID();
       await App.initSupplyChain();
+      await App.fetchEvents();
+      App.bindEvents();
     } catch (error) {
-      console.error(error);
+      App.logError(error);
     }
+  },
+
+  logError: (error) => {
+    $("#ftc-item").addClass('error').text(error.message || error);
+    console.error(error);
+  },
+
+  logResult: (message, result) => {
+    $("#ftc-item").removeClass('error').text(message);
+    console.log(message, result);
   },
 
   readForm: async () => {
@@ -46,8 +71,6 @@ const App = {
   getCurrentAccountID: async () => {
     const accounts = await App.web3.eth.getAccounts();
     App.metamaskAccountID = accounts[0];
-
-    console.log('currentAccountID:', App.metamaskAccountID);
   },
 
   initSupplyChain: async () => {
@@ -55,74 +78,76 @@ const App = {
     const artifactSupplyChain = await $.getJSON(jsonSupplyChain);
 
     const networkId = await App.web3.eth.net.getId();
+    console.log(networkId);
     const network = artifactSupplyChain.networks[networkId];
 
     App.contracts.SupplyChain = new App.web3.eth.Contract(
       artifactSupplyChain.abi,
       network.address,
     );
-
-    // await App.fetchEvents();
-
-    App.bindEvents();
   },
 
   bindEvents: () => {
-    $(document).on('click', App.handleButtonClick);
+    $('button').on('click', App.handleButtonClick);
+  },
+
+  runHandler: async (handlerId) => {
+    switch (handlerId) {
+      case 1:
+        return await App.harvestItem();
+      case 2:
+        return await App.processItem();
+      case 3:
+        return await App.packItem();
+      case 4:
+        return await App.sellItem();
+      case 5:
+        return await App.buyItem();
+      case 6:
+        return await App.shipItem();
+      case 7:
+        return await App.receiveItem();
+      case 8:
+        return await App.purchaseItem();
+      case 9:
+        return await App.fetchItem();
+      default:
+        throw Error(`No handler for id ${handlerId}`);
+    }
   },
 
   handleButtonClick: async (event) => {
     event.preventDefault();
     const processId = parseInt($(event.target).data('id'));
-    let result;
 
     try {
       await App.readForm();
       await App.getCurrentAccountID();
+      const result = await App.runHandler(processId);
+      const message = `${Handlers[processId]} of UPC item ${App.upc} sent successfully`;
 
-      switch (processId) {
-        case 1:
-          result = await App.harvestItem();
-          break;
-        case 2:
-          result = await App.processItem();
-          break;
-        case 3:
-          result = await App.packItem();
-          break;
-        case 4:
-          result = await App.sellItem();
-          break;
-        case 5:
-          result = await App.buyItem();
-          break;
-        case 6:
-          result = await App.shipItem();
-          break;
-        case 7:
-          result = await App.receiveItem();
-          break;
-        case 8:
-          result = await App.purchaseItem();
-          break;
-        case 9:
-          result = await App.fetchItemBufferOne();
-          const result2 = await App.fetchItemBufferTwo();
-          result = {...result, ...result2}
-          break;
+      App.logResult(message, result);
+
+      if (processId < 9) {
+        await App.fetchEvents();
+        await App.runHandler(9);
       }
 
-      $("#ftc-item").text(result);
-      console.log(processId, result);
-
     } catch (error) {
-      console.error(error);
+      App.logError(error);
     }
   },
 
-  harvestItem: async (event) => {
+  harvestItem: async () => {
     const {harvestItem} = App.contracts.SupplyChain.methods;
-    return await harvestItem(
+    console.log(App.upc,
+      App.metamaskAccountID,
+      App.originFarmName,
+      App.originFarmInformation,
+      App.originFarmLatitude,
+      App.originFarmLongitude,
+      App.productNotes);
+    const res = await harvestItem(
       App.upc,
       App.metamaskAccountID,
       App.originFarmName,
@@ -130,6 +155,8 @@ const App = {
       App.originFarmLatitude,
       App.originFarmLongitude,
       App.productNotes).send({from: App.metamaskAccountID});
+    console.log(res);
+    return res;
   },
 
   processItem: async () => {
@@ -169,12 +196,18 @@ const App = {
     return await purchaseItem(App.upc).send({from: App.metamaskAccountID});
   },
 
-  fetchItemBufferOne: async () => {
+  fetchItem: async () => {
     App.upc = $('#upc').val();
-    const {fetchItemOriginData} = App.contracts.SupplyChain.methods;
-    const result = await fetchItemOriginData(App.upc).call();
+    const {fetchItemOriginData, fetchItemSupplyData} = App.contracts.SupplyChain.methods;
+    const result = {
+      ...(await fetchItemOriginData(App.upc).call()),
+      ...(await fetchItemSupplyData(App.upc).call()),
+    };
+
+    App.disableButtonsForState(parseInt(result.itemState));
+
     if (result.itemSKU === "0") {
-      throw new Error(`Fetch 1: Item with upc ${App.upc} not found`);
+      throw Error(`Item with UPC ${App.upc} not found`);
     }
 
     $('#sku').val(result.itemSKU);
@@ -184,26 +217,13 @@ const App = {
     $('#originFarmInformation').val(result.originFarmInformation);
     $('#originFarmLatitude').val(result.originFarmLatitude);
     $('#originFarmLongitude').val(result.originFarmLongitude);
-
-    return result;
-  },
-
-  fetchItemBufferTwo: async () => {
-    App.upc = $('#upc').val();
-    const {fetchItemSupplyData} = App.contracts.SupplyChain.methods;
-    const result = await fetchItemSupplyData(App.upc).call();
-    if (result.itemSKU === "0") {
-      throw new Error(`Fetch 2: Item with upc ${App.upc} not found`);
-    }
-
-    $('#sku').val(result.itemSKU);
     $('#productNotes').val(result.productNotes);
     $('#productPrice').val(App.web3.utils.fromWei(result.productPrice));
     $('#distributorID').val(result.distributorID === App.emptyAddress ? '' : result.distributorID);
     $('#retailerID').val(result.retailerID === App.emptyAddress ? '' : result.retailerID);
     $('#consumerID').val(result.consumerID === App.emptyAddress ? '' : result.consumerID);
 
-    App.disableButtonsForState(parseInt(result.itemState));
+    result.uimsg = `Item with UPC ${App.upc} fetched at ${new Date().toISOString()}`
 
     return result;
   },
@@ -211,7 +231,6 @@ const App = {
   disableButtonsForState: (itemState) => {
     $("button").each(function () {
       const btnState = parseInt($(this).data('id'));
-      console.log(btnState, itemState)
       if (btnState <= itemState) {
         $(this).prop('disabled', true);
         return;
@@ -220,25 +239,19 @@ const App = {
     });
   },
 
-  fetchEvents: function () {
-    if (typeof App.contracts.SupplyChain.currentProvider.sendAsync !== "function") {
-      App.contracts.SupplyChain.currentProvider.sendAsync = function () {
-        return App.contracts.SupplyChain.currentProvider.send.apply(
-          App.contracts.SupplyChain.currentProvider,
-          arguments
-        );
-      };
-    }
+  fetchEvents: async () => {
+    await App.contracts.SupplyChain.getPastEvents("allEvents", {fromBlock: "latest"}, (err, logs) => {
+      if (err) {
+        App.logError(err);
+        return;
+      }
 
-    App.contracts.SupplyChain.deployed().then(function (instance) {
-      var events = instance.allEvents(function (err, log) {
-        if (!err)
-          $("#ftc-events").append('<li>' + log.event + ' - ' + log.transactionHash + '</li>');
+      const logHistory = $("#ftc-events");
+
+      $.each(logs, (index, log) => {
+        logHistory.append(`<li>UPC ${log.returnValues.upc} - ${log.event} - ${log.transactionHash}</li>`);
       });
-    }).catch(function (err) {
-      console.log(err.message);
     });
-
   }
 };
 
