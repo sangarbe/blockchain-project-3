@@ -1,4 +1,4 @@
-# Project requirements
+# Project write-up
 
 ### Libraries used
 
@@ -13,3 +13,19 @@
 - block number:        10498194
 - account:             0xbd59a7cAF8C608c61F8787e8E7F8C19987F48136
 - total cost:          0.00331896006306024 ETH
+
+
+### All versions used
+
+- Truffle v5.5.6 (core: 5.5.6)
+- Ganache v^7.0.3
+- Solidity - pragma (solc-js)
+- Node v16.13.2
+- Web3.js v1.5.3
+
+### UML diagrams
+
+- [Activity](../uml/Activity.png)
+- [State](../uml/State.png)
+- [Sequence](../uml/Sequence.png)
+- [Class](../uml/Class.png)
